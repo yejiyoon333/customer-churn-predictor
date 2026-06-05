@@ -40,9 +40,15 @@ def get_feature_impact(model, input_data):
         transformed_input = transformed_input.toarray()
 
     feature_names = preprocessor.get_feature_names_out()
-    coefficients = classifier.coef_[0]
 
-    impacts = transformed_input[0] * coefficients
+    if hasattr(classifier, "coef_"):
+        importance_values = classifier.coef_[0]
+        impacts = transformed_input[0] * importance_values
+    elif hasattr(classifier, "feature_importances_"):
+        importance_values = classifier.feature_importances_
+        impacts = importance_values
+    else:
+        raise ValueError("This classifier does not support coefficient or feature importance explanation.")
 
     impact_df = pd.DataFrame(
         {
@@ -65,11 +71,12 @@ st.title("Customer Churn Predictor")
 st.write("Enter customer information to predict churn risk.")
 
 with st.expander("Model Evaluation Metrics"):
-    st.write(f"Accuracy: {metrics['accuracy']:.4f}")
-    st.write(f"Precision: {metrics['precision']:.4f}")
-    st.write(f"Recall: {metrics['recall']:.4f}")
-    st.write(f"F1: {metrics['f1']:.4f}")
-    st.write(f"ROC-AUC: {metrics['roc_auc']:.4f}")
+    st.write(f"Best Model: {metrics['best_model']}")
+
+    metrics_df = pd.DataFrame(metrics["models"]).T
+    metrics_df = metrics_df[["accuracy", "precision", "recall", "f1", "roc_auc"]]
+
+    st.dataframe(metrics_df, use_container_width=True)
 
 st.subheader("Customer Information")
 
@@ -152,7 +159,6 @@ if st.button("Predict"):
         use_container_width=True
     )
 
-    st.write("Positive impact means the factor pushes the prediction toward churn.")
-    st.write("Negative impact means the factor pushes the prediction away from churn.")
+    st.write("The table shows the most important features used by the selected model.")
 
 st.caption("Built with Python, scikit-learn, and Streamlit.")
