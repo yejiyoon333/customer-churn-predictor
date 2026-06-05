@@ -45,10 +45,9 @@ def get_feature_impact(model, input_data):
         importance_values = classifier.coef_[0]
         impacts = transformed_input[0] * importance_values
     elif hasattr(classifier, "feature_importances_"):
-        importance_values = classifier.feature_importances_
-        impacts = importance_values
+        impacts = classifier.feature_importances_
     else:
-        raise ValueError("This classifier does not support coefficient or feature importance explanation.")
+        raise ValueError("This classifier does not support explainability.")
 
     impact_df = pd.DataFrame(
         {
