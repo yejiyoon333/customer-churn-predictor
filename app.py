@@ -77,7 +77,7 @@ with st.expander("Model Evaluation Metrics"):
     metrics_df = pd.DataFrame(metrics["models"]).T
     metrics_df = metrics_df[["accuracy", "precision", "recall", "f1", "roc_auc"]]
 
-    st.dataframe(metrics_df, use_container_width=True)
+    st.dataframe(metrics_df, width="stretch")
 
 st.subheader("Customer Information")
 
@@ -157,7 +157,7 @@ if st.button("Predict"):
 
     st.dataframe(
         impact_df[["feature", "impact"]],
-        use_container_width=True
+        width="stretch"
     )
 
     st.write("The table shows the most important features used by the selected model.")
