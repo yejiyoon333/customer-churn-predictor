@@ -23,6 +23,32 @@ def load_metrics():
         return json.load(file)
 
 
+def get_feature_impact(model, input_data):
+    preprocessor = model.named_steps["preprocessor"]
+    classifier = model.named_steps["classifier"]
+
+    transformed_input = preprocessor.transform(input_data)
+
+    if hasattr(transformed_input, "toarray"):
+        transformed_input = transformed_input.toarray()
+
+    feature_names = preprocessor.get_feature_names_out()
+    coefficients = classifier.coef_[0]
+
+    impacts = transformed_input[0] * coefficients
+
+    impact_df = pd.DataFrame(
+        {
+            "feature": feature_names,
+            "impact": impacts
+        }
+    )
+
+    impact_df["abs_impact"] = impact_df["impact"].abs()
+
+    return impact_df.sort_values("abs_impact", ascending=False).head(10)
+
+
 model = load_model()
 metrics = load_metrics()
 
@@ -50,7 +76,7 @@ multiple_lines = st.selectbox("Multiple Lines", ["No phone service", "No", "Yes"
 
 internet_service = st.selectbox("Internet Service", ["DSL", "Fiber optic", "No"])
 online_security = st.selectbox("Online Security", ["No", "Yes", "No internet service"])
-online_backup = st.selectbox("Online Backup", ["No", "Yes", "No internet service"])
+online_backup = st.selectbox("Online Backup", ["Yes", "No", "No internet service"])
 device_protection = st.selectbox("Device Protection", ["No", "Yes", "No internet service"])
 tech_support = st.selectbox("Tech Support", ["No", "Yes", "No internet service"])
 streaming_tv = st.selectbox("Streaming TV", ["No", "Yes", "No internet service"])
@@ -108,5 +134,17 @@ if st.button("Predict"):
         st.success("Prediction: No Churn")
 
     st.write(f"Churn Probability: {churn_probability:.2%}")
+
+    st.subheader("Top Factors Affecting This Prediction")
+
+    impact_df = get_feature_impact(model, input_data)
+
+    st.dataframe(
+        impact_df[["feature", "impact"]],
+        use_container_width=True
+    )
+
+    st.write("Positive impact means the factor pushes the prediction toward churn.")
+    st.write("Negative impact means the factor pushes the prediction away from churn.")
 
 st.caption("Built with Python, scikit-learn, and Streamlit.")
