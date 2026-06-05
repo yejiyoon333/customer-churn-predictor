@@ -22,6 +22,7 @@ def load_metrics():
     with open("model/metrics.json", "r") as file:
         return json.load(file)
 
+
 def clean_feature_name(feature_name):
     return (
         feature_name
@@ -29,6 +30,7 @@ def clean_feature_name(feature_name):
         .replace("cat__", "")
         .replace("_", " = ")
     )
+
 
 def get_feature_impact(model, input_data):
     preprocessor = model.named_steps["preprocessor"]
