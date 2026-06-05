@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import joblib
 import streamlit as st
@@ -15,11 +17,27 @@ def load_model():
     return joblib.load("model/churn_model.pkl")
 
 
+@st.cache_data
+def load_metrics():
+    with open("model/metrics.json", "r") as file:
+        return json.load(file)
+
+
 model = load_model()
+metrics = load_metrics()
 
 st.title("Customer Churn Predictor")
 
 st.write("Enter customer information to predict churn risk.")
+
+with st.expander("Model Evaluation Metrics"):
+    st.write(f"Accuracy: {metrics['accuracy']:.4f}")
+    st.write(f"Precision: {metrics['precision']:.4f}")
+    st.write(f"Recall: {metrics['recall']:.4f}")
+    st.write(f"F1: {metrics['f1']:.4f}")
+    st.write(f"ROC-AUC: {metrics['roc_auc']:.4f}")
+
+st.subheader("Customer Information")
 
 gender = st.selectbox("Gender", ["Female", "Male"])
 senior_citizen = st.selectbox("Senior Citizen", [0, 1])
