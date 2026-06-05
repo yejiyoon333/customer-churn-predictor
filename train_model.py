@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import joblib
 
@@ -64,15 +66,25 @@ def main():
     y_pred = model.predict(X_test)
     y_prob = model.predict_proba(X_test)[:, 1]
 
+    metrics = {
+        "accuracy": accuracy_score(y_test, y_pred),
+        "precision": precision_score(y_test, y_pred),
+        "recall": recall_score(y_test, y_pred),
+        "f1": f1_score(y_test, y_pred),
+        "roc_auc": roc_auc_score(y_test, y_prob)
+    }
+
     print("Model Evaluation")
-    print("Accuracy:", accuracy_score(y_test, y_pred))
-    print("Precision:", precision_score(y_test, y_pred))
-    print("Recall:", recall_score(y_test, y_pred))
-    print("F1:", f1_score(y_test, y_pred))
-    print("ROC-AUC:", roc_auc_score(y_test, y_prob))
+    for metric_name, metric_value in metrics.items():
+        print(f"{metric_name}: {metric_value:.4f}")
 
     joblib.dump(model, "model/churn_model.pkl")
+
+    with open("model/metrics.json", "w") as file:
+        json.dump(metrics, file, indent=4)
+
     print("Model saved to model/churn_model.pkl")
+    print("Metrics saved to model/metrics.json")
 
 
 if __name__ == "__main__":
