@@ -22,6 +22,13 @@ def load_metrics():
     with open("model/metrics.json", "r") as file:
         return json.load(file)
 
+def clean_feature_name(feature_name):
+    return (
+        feature_name
+        .replace("num__", "")
+        .replace("cat__", "")
+        .replace("_", " = ")
+    )
 
 def get_feature_impact(model, input_data):
     preprocessor = model.named_steps["preprocessor"]
@@ -45,6 +52,7 @@ def get_feature_impact(model, input_data):
     )
 
     impact_df["abs_impact"] = impact_df["impact"].abs()
+    impact_df["feature"] = impact_df["feature"].apply(clean_feature_name)
 
     return impact_df.sort_values("abs_impact", ascending=False).head(10)
 
