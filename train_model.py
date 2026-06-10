@@ -1,12 +1,13 @@
 import json
+import os
 
 import pandas as pd
 import joblib
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -37,12 +38,13 @@ def main():
     X = df.drop(columns=["customerID", "Churn"])
     y = df["Churn"]
 
-    categorical_cols = X.select_dtypes(include=["object"]).columns.tolist()
-    numeric_cols = X.select_dtypes(exclude=["object"]).columns.tolist()
+    categorical_cols = X.select_dtypes(include=["object", "string"]).columns.tolist()
+    numeric_cols = X.select_dtypes(exclude=["object", "string"]).columns.tolist()
 
     numeric_transformer = Pipeline(
         steps=[
-            ("imputer", SimpleImputer(strategy="median"))
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler())
         ]
     )
 
@@ -61,7 +63,10 @@ def main():
     )
 
     classifiers = {
-        "logistic_regression": LogisticRegression(max_iter=1000),
+        "logistic_regression": LogisticRegression(
+            max_iter=3000,
+            random_state=42
+        ),
         "random_forest": RandomForestClassifier(
             n_estimators=200,
             random_state=42,
@@ -80,6 +85,20 @@ def main():
         stratify=y
     )
 
+    cv = StratifiedKFold(
+        n_splits=5,
+        shuffle=True,
+        random_state=42
+    )
+
+    scoring = {
+        "accuracy": "accuracy",
+        "precision": "precision",
+        "recall": "recall",
+        "f1": "f1",
+        "roc_auc": "roc_auc"
+    }
+
     all_metrics = {}
     trained_models = {}
 
@@ -91,28 +110,63 @@ def main():
             ]
         )
 
+        cv_results = cross_validate(
+            model,
+            X_train,
+            y_train,
+            cv=cv,
+            scoring=scoring
+        )
+
+        cv_metrics = {
+            "cv_accuracy": cv_results["test_accuracy"].mean(),
+            "cv_precision": cv_results["test_precision"].mean(),
+            "cv_recall": cv_results["test_recall"].mean(),
+            "cv_f1": cv_results["test_f1"].mean(),
+            "cv_roc_auc": cv_results["test_roc_auc"].mean()
+        }
+
         model.fit(X_train, y_train)
 
-        metrics = evaluate_model(model, X_test, y_test)
+        test_metrics = evaluate_model(model, X_test, y_test)
+
+        metrics = {
+            **cv_metrics,
+            **test_metrics
+        }
 
         all_metrics[model_name] = metrics
         trained_models[model_name] = model
 
         print(f"\nModel: {model_name}")
-        for metric_name, metric_value in metrics.items():
-            print(f"{metric_name}: {metric_value:.4f}")
+        print("Cross-validation results:")
+        print(f"cv_accuracy: {metrics['cv_accuracy']:.4f}")
+        print(f"cv_precision: {metrics['cv_precision']:.4f}")
+        print(f"cv_recall: {metrics['cv_recall']:.4f}")
+        print(f"cv_f1: {metrics['cv_f1']:.4f}")
+        print(f"cv_roc_auc: {metrics['cv_roc_auc']:.4f}")
+
+        print("Test results:")
+        print(f"accuracy: {metrics['accuracy']:.4f}")
+        print(f"precision: {metrics['precision']:.4f}")
+        print(f"recall: {metrics['recall']:.4f}")
+        print(f"f1: {metrics['f1']:.4f}")
+        print(f"roc_auc: {metrics['roc_auc']:.4f}")
 
     best_model_name = max(
         all_metrics,
-        key=lambda name: all_metrics[name]["roc_auc"]
+        key=lambda name: all_metrics[name]["cv_roc_auc"]
     )
 
     best_model = trained_models[best_model_name]
 
     output = {
         "best_model": best_model_name,
+        "selection_metric": "cv_roc_auc",
         "models": all_metrics
     }
+
+    os.makedirs("model", exist_ok=True)
 
     joblib.dump(best_model, "model/churn_model.pkl")
 
@@ -120,9 +174,10 @@ def main():
         json.dump(output, file, indent=4)
 
     print(f"\nBest model: {best_model_name}")
+    print("Selection metric: cv_roc_auc")
     print("Best model saved to model/churn_model.pkl")
     print("Metrics saved to model/metrics.json")
 
-
 if __name__ == "__main__":
     main()
+    
