@@ -73,11 +73,23 @@ st.write("Enter customer information to predict churn risk.")
 
 with st.expander("Model Evaluation Metrics"):
     st.write(f"Best Model: {metrics['best_model']}")
+    st.write(f"Selection Metric: {metrics['selection_metric']}")
 
     metrics_df = pd.DataFrame(metrics["models"]).T
-    metrics_df = metrics_df[["accuracy", "precision", "recall", "f1", "roc_auc"]]
 
-    st.dataframe(metrics_df, width="stretch")
+    cv_metrics_df = metrics_df[
+        ["cv_accuracy", "cv_precision", "cv_recall", "cv_f1", "cv_roc_auc"]
+    ]
+
+    test_metrics_df = metrics_df[
+        ["accuracy", "precision", "recall", "f1", "roc_auc"]
+    ]
+
+    st.subheader("Cross-validation Metrics")
+    st.dataframe(cv_metrics_df, width="stretch")
+
+    st.subheader("Test Metrics")
+    st.dataframe(test_metrics_df, width="stretch")
 
 st.subheader("Customer Information")
 
