@@ -3,40 +3,44 @@
     "selection_metric": "cv_roc_auc",
     "models": {
         "logistic_regression": {
-            "cv_accuracy": 0.802095977784117,
-            "cv_precision": 0.6528985914483468,
-            "cv_recall": 0.5431438127090301,
-            "cv_f1": 0.5923158544291797,
-            "cv_roc_auc": 0.8461368989751807,
+            "cv_roc_auc": 0.84632115619594,
+            "best_params": {
+                "classifier__solver": "lbfgs",
+                "classifier__C": 10
+            },
             "accuracy": 0.8055358410220014,
             "precision": 0.6572327044025157,
             "recall": 0.5588235294117647,
             "f1": 0.6040462427745664,
-            "roc_auc": 0.8418610659019866
+            "roc_auc": 0.8411558035598958
         },
         "random_forest": {
-            "cv_accuracy": 0.775827618869001,
-            "cv_precision": 0.5682197769886181,
-            "cv_recall": 0.6448160535117056,
-            "cv_f1": 0.6039677244079844,
-            "cv_roc_auc": 0.8223340419518328,
-            "accuracy": 0.7636621717530163,
-            "precision": 0.5484633569739953,
-            "recall": 0.6203208556149733,
-            "f1": 0.5821831869510665,
-            "roc_auc": 0.8224573096695857
+            "cv_roc_auc": 0.84555302964544,
+            "best_params": {
+                "classifier__n_estimators": 300,
+                "classifier__min_samples_split": 5,
+                "classifier__min_samples_leaf": 4,
+                "classifier__max_depth": 10
+            },
+            "accuracy": 0.7544357700496807,
+            "precision": 0.5252707581227437,
+            "recall": 0.7780748663101604,
+            "f1": 0.6271551724137931,
+            "roc_auc": 0.8417021881216254
         },
         "gradient_boosting": {
-            "cv_accuracy": 0.8033396322464424,
-            "cv_precision": 0.660565829433426,
-            "cv_recall": 0.5337792642140469,
-            "cv_f1": 0.5902001258679758,
-            "cv_roc_auc": 0.8478405368464526,
-            "accuracy": 0.8062455642299503,
-            "precision": 0.6735395189003437,
-            "recall": 0.5240641711229946,
-            "f1": 0.5894736842105263,
-            "roc_auc": 0.8433620088351547
+            "cv_roc_auc": 0.849904724991414,
+            "best_params": {
+                "classifier__n_estimators": 200,
+                "classifier__min_samples_split": 5,
+                "classifier__max_depth": 2,
+                "classifier__learning_rate": 0.05
+            },
+            "accuracy": 0.7991483321504613,
+            "precision": 0.6607773851590106,
+            "recall": 0.5,
+            "f1": 0.5692541856925418,
+            "roc_auc": 0.8456883412126379
         }
     }
 }

@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import joblib
 
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_validate
+from sklearn.model_selection import train_test_split, StratifiedKFold, RandomizedSearchCV
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -62,19 +62,32 @@ def main():
         ]
     )
 
-    classifiers = {
-        "logistic_regression": LogisticRegression(
-            max_iter=3000,
-            random_state=42
-        ),
-        "random_forest": RandomForestClassifier(
-            n_estimators=200,
-            random_state=42,
-            class_weight="balanced"
-        ),
-        "gradient_boosting": GradientBoostingClassifier(
-            random_state=42
-        )
+    model_configs = {
+        "logistic_regression": {
+            "classifier": LogisticRegression(random_state=42, max_iter=5000),
+            "params": {
+                "classifier__C": [0.01, 0.1, 1, 10],
+                "classifier__solver": ["lbfgs"]
+            }
+        },
+        "random_forest": {
+            "classifier": RandomForestClassifier(random_state=42, class_weight="balanced"),
+            "params": {
+                "classifier__n_estimators": [100, 200, 300],
+                "classifier__max_depth": [None, 5, 10, 20],
+                "classifier__min_samples_split": [2, 5, 10],
+                "classifier__min_samples_leaf": [1, 2, 4]
+            }
+        },
+        "gradient_boosting": {
+            "classifier": GradientBoostingClassifier(random_state=42),
+            "params": {
+                "classifier__n_estimators": [100, 200, 300],
+                "classifier__learning_rate": [0.01, 0.05, 0.1],
+                "classifier__max_depth": [2, 3, 4],
+                "classifier__min_samples_split": [2, 5, 10]
+            }
+        }
     }
 
     X_train, X_test, y_train, y_test = train_test_split(
@@ -91,61 +104,45 @@ def main():
         random_state=42
     )
 
-    scoring = {
-        "accuracy": "accuracy",
-        "precision": "precision",
-        "recall": "recall",
-        "f1": "f1",
-        "roc_auc": "roc_auc"
-    }
-
     all_metrics = {}
     trained_models = {}
 
-    for model_name, classifier in classifiers.items():
-        model = Pipeline(
+    for model_name, config in model_configs.items():
+        print(f"\nTraining model: {model_name}")
+
+        pipeline = Pipeline(
             steps=[
                 ("preprocessor", preprocessor),
-                ("classifier", classifier)
+                ("classifier", config["classifier"])
             ]
         )
 
-        cv_results = cross_validate(
-            model,
-            X_train,
-            y_train,
+        search = RandomizedSearchCV(
+            estimator=pipeline,
+            param_distributions=config["params"],
+            n_iter=10,
+            scoring="roc_auc",
             cv=cv,
-            scoring=scoring
+            random_state=42,
+            n_jobs=-1
         )
 
-        cv_metrics = {
-            "cv_accuracy": cv_results["test_accuracy"].mean(),
-            "cv_precision": cv_results["test_precision"].mean(),
-            "cv_recall": cv_results["test_recall"].mean(),
-            "cv_f1": cv_results["test_f1"].mean(),
-            "cv_roc_auc": cv_results["test_roc_auc"].mean()
-        }
+        search.fit(X_train, y_train)
 
-        model.fit(X_train, y_train)
-
-        test_metrics = evaluate_model(model, X_test, y_test)
+        best_model = search.best_estimator_
+        test_metrics = evaluate_model(best_model, X_test, y_test)
 
         metrics = {
-            **cv_metrics,
+            "cv_roc_auc": search.best_score_,
+            "best_params": search.best_params_,
             **test_metrics
         }
 
         all_metrics[model_name] = metrics
-        trained_models[model_name] = model
+        trained_models[model_name] = best_model
 
-        print(f"\nModel: {model_name}")
-        print("Cross-validation results:")
-        print(f"cv_accuracy: {metrics['cv_accuracy']:.4f}")
-        print(f"cv_precision: {metrics['cv_precision']:.4f}")
-        print(f"cv_recall: {metrics['cv_recall']:.4f}")
-        print(f"cv_f1: {metrics['cv_f1']:.4f}")
-        print(f"cv_roc_auc: {metrics['cv_roc_auc']:.4f}")
-
+        print(f"Best CV ROC-AUC: {search.best_score_:.4f}")
+        print(f"Best params: {search.best_params_}")
         print("Test results:")
         print(f"accuracy: {metrics['accuracy']:.4f}")
         print(f"precision: {metrics['precision']:.4f}")
@@ -178,6 +175,6 @@ def main():
     print("Best model saved to model/churn_model.pkl")
     print("Metrics saved to model/metrics.json")
 
+
 if __name__ == "__main__":
     main()
-    
